@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+set -o errexit -o nounset -o pipefail
+
+prepped_commits='.git/PREP_COMMITS'
+prepped_template='.git/PREP_TEMPLATE'
+
+rm -f "$prepped_commits" "$prepped_template"
+
+current_branch="$(git branch --show-current)"
+target_branch='main'
+
+echo "Current branch: ${current_branch}"
+echo "Target branch:  ${target_branch}"
+echo
+
+if [[ "${current_branch}" = "${target_branch}" ]]; then
+	echo 'Error: current branch and target branch cannot be the same'
+	exit 1
+fi
+
+num_commits=$(git --no-pager log ${target_branch}..HEAD --format="%s" | wc -l | awk '{ print $1 }')
+
+echo 'Number of commits:'
+echo "${num_commits}"
+echo
+
+num_min_commits=1
+
+if [[ "${num_commits}" -lt "${num_min_commits}" ]]; then
+	echo 'Error: number of commits must be greater than 0'
+	exit 1
+fi
+
+touch "$prepped_commits" "$prepped_template"
+
+git --no-pager log -"${num_commits}" --format="# %ai%n%h%n%an%n%s%n" >"$prepped_commits"
+git reset --mixed HEAD~"${num_commits}"
+
+echo 'Prepped commits:'
+cat "$prepped_commits"
+
+git add .
+
+echo '<SCOPE>: <TITLE>' >>"$prepped_template"
+echo >>"$prepped_template"
+
+echo '-----' >>"$prepped_template"
+echo 'DIFF:' >>"$prepped_template"
+echo '-----' >>"$prepped_template"
+
+echo >>"$prepped_template"
+git diff --cached --stat >>"$prepped_template"
+echo >>"$prepped_template"
+
+echo '--------' >>"$prepped_template"
+echo 'COMMITS:' >>"$prepped_template"
+echo '--------' >>"$prepped_template"
+
+echo >>"$prepped_template"
+cat "$prepped_commits" >>"$prepped_template"
+
+echo '--------' >>"$prepped_template"
+echo 'SUMMARY:' >>"$prepped_template"
+echo '--------' >>"$prepped_template"
+
+echo >>"$prepped_template"
+echo 'TODO...' >>"$prepped_template"
+echo >>"$prepped_template"
+
+echo '--------' >>"$prepped_template"
+echo 'TESTING:' >>"$prepped_template"
+echo '--------' >>"$prepped_template"
+
+echo >>"$prepped_template"
+echo 'TODO...' >>"$prepped_template"
+echo >>"$prepped_template"
+
+echo '----------' >>"$prepped_template"
+echo 'CI CHECKS:' >>"$prepped_template"
+echo '----------' >>"$prepped_template"
+
+echo >>"$prepped_template"
+echo 'TODO...' >>"$prepped_template"
+
+git commit -t "$prepped_template"
+
+rm "$prepped_commits" "$prepped_template"
